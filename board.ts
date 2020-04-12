@@ -1,94 +1,119 @@
-import { Point, BaseBlock, getRandomBlockInstance } from "./blocks";
-import { Dimensions, PointDict} from  './types'
+import { Dimensions, PointDict, PointIndex, Coordinate, Height } from "./types";
+import { BaseBlock, Point } from "./blocks";
+import { HitDetection } from "./hit-detection";
 export class Board {
-  dimensions: Dimensions;
-  private activeBlock: BaseBlock;
-  private activateBlockPosition: Coordinates;
-  public NextBlock: BaseBlock;
-  points: PointDict = {};
+  public dimensions: Dimensions;
+  private points: PointDict = {};
+  public pointsIndex: PointIndex = {};
+  private brick: BaseBlock;
+  private brickPosition: Coordinate;
 
   constructor(dimensions: Dimensions) {
     this.dimensions = dimensions;
-    this.activeBlock = getRandomBlockInstance();
-    this.NextBlock = getRandomBlockInstance();
   }
-  get activeBlockCoordinates() {
-    return this.activeBlock.shape.map((coordinate) => {
-      return [
-        this.activateBlockPosition[0] - coordinate[0],
-        this.activateBlockPosition[1] - coordinate[1],
+
+  get positionedBrickShape(): Coordinate[] {
+    const shape = this.brick.shape.map((coordinate) => {
+      const positionedCoordinates: Coordinate = [
+        this.brickPosition[0] + coordinate[0],
+        this.brickPosition[1] + coordinate[1],
       ];
+      return positionedCoordinates;
+    });
+
+    return shape;
+  }
+
+  public nextBrick(brick: BaseBlock, brickPosition: Coordinate): void {
+    this.brick = brick;
+    this.brickPosition = brickPosition;
+  }
+
+  public moveBlockLeft(): void {
+    if (
+      HitDetection.canMove(
+        "left",
+        this.positionedBrickShape,
+        this.points,
+        this.dimensions
+      )
+    ) {
+      --this.brickPosition[1];
+    }
+  }
+  public moveBlockRight(): void {
+    if (
+      HitDetection.canMove(
+        "right",
+        this.positionedBrickShape,
+        this.points,
+        this.dimensions
+      )
+    ) {
+      ++this.brickPosition[1];
+    }
+  }
+
+  public moveBlockDown(): void {
+    if (HitDetection.hasLanded(this.positionedBrickShape, this.points)) {
+      const affectedRows = this.positionedBrickShape
+        .map((coordinate) => coordinate[0])
+        .filter((value, index, self) => {
+          return self.indexOf(value) === index;
+        });
+      affectedRows.forEach(this.removeRow);
+      this.convertBrickToPoints();
+    }
+  }
+
+  private convertBrickToPoints(): void {
+    this.positionedBrickShape.forEach((coordinate) => {
+      this.indexPoint(coordinate);
+      this.points[String(coordinate)] = new Point(this.brick.color);
     });
   }
+  private indexPoint(coordinate: Coordinate): void {
+    let heightIndex = this.pointsIndex[String(coordinate[0])];
 
-  get matrix() {
-    const matrix: Point[][] = [];
-    for (let height = 0; height < this.dimensions[1]; height++) {
-      matrix.push([]);
-      for (let width = 0; width < this.dimensions[0]; width++) {
-        matrix[height][width] = this.points[String([width, height])];
+    heightIndex = heightIndex ? heightIndex : {};
+    heightIndex[String(coordinate[1])] = true;
+  }
+
+  removeRow(row: Height): void {
+    const pointsInRow = Object.keys(this.pointsIndex[row]).map(Number);
+    const boardWidth = this.dimensions[1];
+    if (pointsInRow.length === boardWidth) {
+      delete this.pointsIndex[row];
+      pointsInRow.forEach(
+        (position) => delete this.points[String([row, position])]
+      );
+      this.shiftRowsDown(row);
+    }
+  }
+
+  private shiftRowsDown(row: Height) {
+    // Shift all Point indexes
+    Object.keys(this.pointsIndex)
+      .map(Number)
+      .sort((a, b) => a - b)
+      .forEach((posY) => {
+        if (posY > row) {
+          this.pointsIndex[posY - 1] = this.pointsIndex[posY];
+        }
+      });
+
+    // Shift all Points
+    const newPoints: PointDict = {};
+    for (const coordinateString in this.points) {
+      const [posY, posX] = coordinateString
+        .split(",")
+        .map(Number) as Coordinate;
+
+      if (posY > row) {
+        newPoints[String([posY - 1, posX])] = this.points[coordinateString];
+      } else {
+        newPoints[coordinateString] = this.points[coordinateString];
       }
-    }
-    return matrix;
-  }
-
-  public moveBlockDown() {
-    if (this.shouldBecomePoints()) {
-      this.convertBlockToPoints();
-      this.removeFullRows();
-    } else {
-      --this.activateBlockPosition[1];
-    }
-  }
-  public moveBlockLeft() {
-    if (!this.willPassWall) --this.activateBlockPosition[0];
-  }
-  public moveBlockRight() {
-    if (!this.willPassWall) ++this.activateBlockPosition[0];
-  }
-  private willPassWall() {
-    return this.activeBlockCoordinates
-      .map((coordinate) =>
-        0 > coordinate[0] && coordinate[0] < this.dimensions[0] ? true : false
-      )
-      .some((bool) => bool);
-  }
-
-  private shouldBecomePoints() {
-    return this.activeBlockCoordinates
-      .map(
-        (coordinate) =>
-          !!this.points[String(coordinate)] ||
-          coordinate[1] > this.dimensions[1]
-      )
-      .some((bool) => bool);
-  }
-  convertBlockToPoints() {
-    for (let coordinate of this.activeBlockCoordinates) {
-      this.points[String(coordinate)] = new Point(this.activeBlock.color);
-    }
-    this.activeBlock = this.NextBlock;
-    this.NextBlock = getRandomBlockInstance();
-  }
-
-  removeFullRows() {
-    const newMatrix = this.matrix.filter((row) => row.every((point) => point));
-    const rowsNeeded = this.dimensions[1] - newMatrix.length;
-
-    for (let row = 0; row < rowsNeeded; row++) {
-      newMatrix.unshift([]);
-    }
-
-    if (rowsNeeded) {
-      this.points = newMatrix.reduce((points, row, height) => {
-        const morePoints = row.reduce((rowPoints, point, width) => {
-          if (point) {
-            rowPoints[String([width, height])] = point;
-          }
-          return rowPoints;
-        }, {} as PointDict);
-        return { ...points, ...morePoints };
-      }, {} as PointDict);
     }
   }
 }

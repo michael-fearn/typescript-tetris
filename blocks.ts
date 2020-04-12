@@ -36,29 +36,29 @@ export class BaseBlock {
 
 export class IBlock extends BaseBlock {
   protected baseShape: Coordinate[] = [
-    [-1, 0],
+    [0, -1],
     [0, 0],
-    [1, 0],
-    [2, 0],
+    [0, 1],
+    [0, 2],
   ];
   color = "#00F0F0";
 }
 
 export class JBlock extends BaseBlock {
   protected baseShape: Coordinate[] = [
-    [-1, 1],
-    [-1, 0],
+    [1, -1],
+    [0, -1],
     [0, 0],
-    [1, 0],
+    [0, 1],
   ];
   color = "#0000F0";
 }
 
 export class LBlock extends BaseBlock {
   protected baseShape: Coordinate[] = [
-    [-1, 0],
+    [0, -1],
     [0, 0],
-    [1, 0],
+    [0, 1],
     [1, 1],
   ];
   color = "#F0A000";
@@ -67,18 +67,18 @@ export class LBlock extends BaseBlock {
 export class OBlock extends BaseBlock {
   protected baseShape: Coordinate[] = [
     [0, 0],
-    [1, 0],
-    [0, -1],
-    [1, -1],
+    [0, 1],
+    [-1, 0],
+    [-1, 1],
   ];
   color = "#F0F000";
 }
 
 export class SBlock extends BaseBlock {
   protected baseShape: Coordinate[] = [
-    [-1, 0],
+    [0, -1],
     [0, 0],
-    [0, 1],
+    [1, 0],
     [1, 1],
   ];
   color = "#00F000";
@@ -86,20 +86,20 @@ export class SBlock extends BaseBlock {
 
 export class ZBlock extends BaseBlock {
   protected baseShape: Coordinate[] = [
-    [-1, 1],
-    [0, 1],
-    [0, 0],
+    [1, -1],
     [1, 0],
+    [0, 0],
+    [0, 1],
   ];
   color = "#F00000";
 }
 
 export class TBlock extends BaseBlock {
   protected baseShape: Coordinate[] = [
-    [-1, 0],
-    [0, 0],
-    [0, 1],
     [0, -1],
+    [0, 0],
+    [1, 0],
+    [-1, 0],
   ];
   color = "#A000F0";
 }
